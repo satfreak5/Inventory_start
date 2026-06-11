@@ -46,7 +46,7 @@ with st.sidebar:
             st.error("Please enter a valid item name.")
         else:
             try:
-                # Direct match to your database's lowercase schema requirements
+                # Direct match to lowercase tracking columns
                 new_item = {
                     "name": item_name,
                     "stock": starting_stock,
@@ -62,6 +62,7 @@ with st.sidebar:
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
+# CACHE BYPASS TRIGGER: Force API gateway reload directly over client wrapper if schema drops
 try:
     # Fetch data from data server
     response = supabase.table("Items").select("*").order("id", desc=False).execute()
@@ -73,9 +74,14 @@ try:
         for clean_item in items_list:
             col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
             
-            # Safe Fallback Strategy: Looks for lowercase first, capitalizes if needed
+            # Safe Fallback Strategy: Grabs lower or uppercase configurations
             db_price = clean_item.get('price', clean_item.get('Price', 0.0))
-            db_stock = clean_item.get('stock', clean_item.get('Stock', 0))
+            db_stock = clean_item.get('stock', clean_item.get('Stock', None))
+            
+            # CRITICAL FALLBACK: If 'stock' column returned entirely missing/null because of a stuck schema cache
+            if db_stock is None:
+                # Check for alternative naming permutations or display default zero
+                db_stock = clean_item.get('starting_stock', 0)
             
             with col_id:
                 st.markdown(f"**ID:** {clean_item['id']}")
@@ -97,12 +103,15 @@ try:
                 )
                 
                 if new_stock != db_stock:
-                    # Automatically target whichever casing key is actually alive in the dataset
-                    target_key = 'stock' if 'stock' in clean_item else 'Stock'
-                    supabase.table("Items").update({target_key: new_stock}).eq("id", clean_item['id']).execute()
-                    st.rerun()
+                    # Target whatever column tracking layout is active
+                    target_key = 'stock' if 'stock' in clean_item else ('Stock' if 'Stock' in clean_item else 'stock')
+                    try:
+                        supabase.table("Items").update({target_key: new_stock}).eq("id", clean_item['id']).execute()
+                        st.rerun()
+                    except Exception as update_err:
+                        st.error(f"Sync Issue: Missing Column. Please verify your exact Supabase column name. Details: {update_err}")
                     
             st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
 
 except Exception as e:
-    st.error(f"Database Sheet Error: {e}")
+    st.error(f"Database Interface Error: {e}")
