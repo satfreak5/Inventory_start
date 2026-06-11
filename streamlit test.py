@@ -2,14 +2,14 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- 1. DATABASE CONNECTION SETUP ---
-# (Your secure credentials linking your website to Supabase cloud memory)
-URL = st.secrets["SUPABASE_URL"]
-KEY = st.secrets["SUPABASE_KEY"]
+# Your direct keys are plugged straight in here to bypass the secrets manager
+URL = "https://uyrfrgdjwfthmw..."  # <-- Finish pasting your full URL string here
+KEY = "sb_publishable_1EmUVN4..."  # <-- Finish pasting your full long Key string here
+
 supabase: Client = create_client(URL, KEY)
 
 
 # --- 2. PREMIUM PROINV+ HEADER SECTION ---
-# Centers the modern icon and applies custom fonts/colors for a premium look
 st.markdown(
     """
     <div style="text-align: center;">
@@ -37,17 +37,14 @@ st.markdown(
 with st.sidebar:
     st.header("➕ Add New Inventory")
     
-    # Input fields for user data entry
     item_name = st.text_input("Item Name", placeholder="e.g., Wireless Mouse")
     starting_stock = st.number_input("Starting Stock", min_value=0, value=0, step=1)
     price = st.number_input("Price ($)", min_value=0.0, value=0.0, step=0.01)
     
-    # Submission button logic
     if st.button("Add Item to Cloud", use_container_width=True):
         if item_name.strip() == "":
             st.error("Please enter a valid item name.")
         else:
-            # Insert data row into the Supabase table
             new_item = {
                 "name": item_name,
                 "stock": starting_stock,
@@ -55,22 +52,19 @@ with st.sidebar:
             }
             supabase.table("Items").insert(new_item).execute()
             st.success(f"Successfully added '{item_name}'!")
-            st.rerun()  # Refresh the page instantly to show the new item
+            st.rerun()
 
 
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-# Pull live table rows directly from the cloud database
 response = supabase.table("Items").select("*").order("id", desc=False).execute()
 items = response.data
 
-# Loop through every item fetched and draw it on the screen
 if not items:
     st.info("No items in inventory yet. Use the sidebar to add your first item!")
 else:
     for item in items:
-        # Create a horizontal row split into clean columns
         col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
         
         with col_id:
@@ -83,17 +77,15 @@ else:
             st.markdown(f"**Price:** ${item['price']:.2f}")
             
         with col_counter:
-            # Display a mini interactive adjustment widget for stock quantity
             new_stock = st.number_input(
                 label=f"Stock counter for {item['id']}",
                 min_value=0,
                 value=int(item['stock']),
                 step=1,
                 key=f"stock_{item['id']}",
-                label_visibility="collapsed"  # Hides clutter text to keep look clean
+                label_visibility="collapsed"
             )
             
-            # If the user clicks a number change, update the cloud instantly
             if new_stock != item['stock']:
                 supabase.table("Items").update({"stock": new_stock}).eq("id", item['id']).execute()
                 st.rerun()
