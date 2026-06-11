@@ -73,7 +73,7 @@ else:
             st.markdown(f"**Product:** {item['name']}")
             
         with col_price:
-            # FIXED: Changed from 'Price' to lowercase 'price'
+            # FIXED: Changed from item['Price'] to lowercase item['price']
             st.markdown(f"**Price:** ${float(item['price']):.2f}")
             
         with col_counter:
