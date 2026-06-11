@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Inventory Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; }
+        
+        /* Dashboard Styling */
+        #dashboard { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
+        h1 { color: #1e293b; font-size: 24px; }
+        .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 6px; transition: background 0.2s; }
+        .refresh-btn:hover { background-color: #4338ca; }
+        
+        /* Table Layout */
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; font-weight: 600; color: #64748b; }
+        tr:hover { background-color: #f1f5f9; }
+        
+        /* Flowise Chat Container Placeholder */
+        #chat-section { width: 400px; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
+        .chat-fallback-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #94a3b8; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="#dashboard">
+        <header>
+            <h1>📦 Live Inventory Dashboard</h1>
+            <button class="refresh-btn" onclick="fetchInventory()">🔄 Refresh Data</button>
+        </header>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Item Name</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-data">
+                    <tr>
+                        <td colspan="3" style="text-align: center; color: #64748b;">Loading table data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="chat-section">
+        <div class="chat-fallback-text">AI Assistant Loading...</div>
+    </div>
+
+    <script>
+        // CONFIGURATION: Replace these values with your actual project credentials
+        const SUPABASE_URL = "https://uyrfgdjwsthmwyhvdrj.supabase.co"; 
+        const SUPABASE_ANON_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"; // Put your actual public anon key here
+
+        // Initialize Supabase Client
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Fetch Data Function
+        async function fetchInventory() {
+            const tbody = document.getElementById('inventory-data');
+            
+            try {
+                // Change 'Items' to your exact Supabase table name if it's different
+                let { data: Items, error } = await supabase.from('Items').select('*');
+                
+                if (error) throw error;
+                
+                tbody.innerHTML = ''; // Clear loading screen
+                
+                if (Items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">No inventory items found. Add some using the chat!</td></tr>`;
+                    return;
+                }
+
+                Items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>#${item.id}</strong></td>
+                        <td>${item.input || item.name || 'Unnamed Item'}</td>
+                        <td>${new Date(item.created_at).toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("Error pulling database data:", err);
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ef4444;">Failed to load data. Check console logs.</td></tr>`;
+            }
+        }
+
+        // Run fetch on initial application load
+        window.onload = fetchInventory;
+    </script>
+
+    <script type="module">
+        import Chatbot from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js'
+        Chatbot.initFull({
+            chatflowid: "YOUR_FLOWISE_CHATFLOW_ID", // Replace with your exact chatflow ID
+            apiHost: "YOUR_FLOWISE_API_HOST_URL",  // Replace with your Flowise host instance URL
+            theme: {
+                chatWindow: {
+                    welcomeMessage: "Hello! I am your AI Inventory Manager. Tell me to add items or ask about current inventory status.",
+                    backgroundColor: "#ffffff",
+                    fontSize: 15
+                }
+            }
+        })
+    </script>
+
+</body>
+</html>
