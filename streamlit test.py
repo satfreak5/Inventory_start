@@ -4,11 +4,7 @@ from supabase import create_client, Client
 # --- 1. DATABASE CONNECTION SETUP ---
 URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
 KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
-
-try:
-    supabase: Client = create_client(URL, KEY)
-except Exception as e:
-    st.error(f"Database connection initialization failed: {e}")
+supabase: Client = create_client(URL, KEY)
 
 
 # --- 2. PREMIUM PROINV+ HEADER SECTION ---
@@ -47,63 +43,52 @@ with st.sidebar:
         if item_name.strip() == "":
             st.error("Please enter a valid item name.")
         else:
-            try:
-                new_item = {
-                    "name": item_name,
-                    "Stock": starting_stock,  # Capitalized to match Supabase
-                    "Price": price            # Capitalized to match Supabase
-                }
-                supabase.table("Items").insert(new_item).execute()
-                st.success(f"Successfully added '{item_name}'!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed to add item: {e}")
+            new_item = {
+                "name": item_name,
+                "Stock": starting_stock,
+                "Price": price
+            }
+            supabase.table("Items").insert(new_item).execute()
+            st.success(f"Successfully added '{item_name}'!")
+            st.rerun()
 
 
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-try:
-    response = supabase.table("Items").select("*").order("id", desc=False).execute()
-    items = response.data
+# Fetch current list from the cloud
+response = supabase.table("Items").select("*").order("id", desc=False).execute()
+items = response.data
 
-    if not items:
-        st.info("No items in inventory yet. Use the sidebar to add your first item!")
-    else:
-        for item in items:
-            col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
+if not items:
+    st.info("No items in inventory yet. Use the sidebar to add your first item!")
+else:
+    for item in items:
+        col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
+        
+        with col_id:
+            st.markdown(f"**ID:** {item['id']}")
             
-            with col_id:
-                st.markdown(f"**ID:** {item['id']}")
+        with col_name:
+            st.markdown(f"**Product:** {item['name']}")
+            
+        with col_price:
+            st.markdown(f"**Price:** ${float(item['Price']):.2f}")
+            
+        with col_counter:
+            # Interactive step counter mapping directly to database column
+            new_stock = st.number_input(
+                label=f"Stock counter for {item['id']}",
+                min_value=0,
+                value=int(item['Stock']),
+                step=1,
+                key=f"stock_{item['id']}",
+                label_visibility="collapsed"
+            )
+            
+            # Instantly update cloud if a user changes values
+            if new_stock != item['Stock']:
+                supabase.table("Items").update({"Stock": new_stock}).eq("id", item['id']).execute()
+                st.rerun()
                 
-            with col_name:
-                st.markdown(f"**Product:** {item['name']}")
-                
-            with col_price:
-                # Fallback check for capital/lowercase price columns
-                item_price = item.get('Price', item.get('price', 0.0))
-                st.markdown(f"**Price:** ${float(item_price):.2f}")
-                
-            with col_counter:
-                # Fallback check for capital/lowercase stock columns
-                current_stock = int(item.get('Stock', item.get('stock', 0)))
-                
-                new_stock = st.number_input(
-                    label=f"Stock counter for {item['id']}",
-                    min_value=0,
-                    value=current_stock,
-                    step=1,
-                    key=f"stock_{item['id']}",
-                    label_visibility="collapsed"
-                )
-                
-                if new_stock != current_stock:
-                    # Determine which key to update based on what exists in the row
-                    stock_key = 'Stock' if 'Stock' in item else 'stock'
-                    supabase.table("Items").update({stock_key: new_stock}).eq("id", item['id']).execute()
-                    st.rerun()
-                    
-            st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
-
-except Exception as e:
-    st.error(f"Database Error: {e}")
+        st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
