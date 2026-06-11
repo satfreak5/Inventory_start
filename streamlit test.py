@@ -5,7 +5,7 @@ from supabase import create_client, Client
 SUPABASE_URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
 SUPABASE_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
 
-# Initialize the cloud database client
+# Initialize the cloud database client smoothly
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -33,85 +33,20 @@ st.markdown(
 )
 
 
-# --- 3. SIDEBAR: ADD NEW INVENTORY FORM ---
-with st.sidebar:
-    st.header("➕ Add New Inventory")
-    
-    item_name = st.text_input("Item Name", placeholder="e.g., Wireless Mouse")
-    starting_stock = st.number_input("Starting Stock", min_value=0, value=0, step=1)
-    price = st.number_input("Price ($)", min_value=0.0, value=0.0, step=0.01)
-    
-    if st.button("Add Item to Cloud", use_container_width=True):
-        if item_name.strip() == "":
-            st.error("Please enter a valid item name.")
-        else:
-            try:
-                # Direct match to lowercase tracking columns
-                new_item = {
-                    "name": item_name,
-                    "stock": starting_stock,
-                    "price": price
-                }
-                supabase.table("Items").insert(new_item).execute()
-                st.success(f"Successfully added '{item_name}'!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Failed to add item: {e}")
+# --- 3. MAIN INTERFACE: LIVE INVENTORY LIST ---
+st.subheader("📋 Current Inventory Items")
 
-
-# --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
-st.subheader("📊 Live Stock Sheets")
-
-# CACHE BYPASS TRIGGER: Force API gateway reload directly over client wrapper if schema drops
 try:
-    # Fetch data from data server
+    # Fetch data from the Items table
     response = supabase.table("Items").select("*").order("id", desc=False).execute()
     items_list = response.data
 
     if not items_list:
-        st.info("No items in inventory yet. Use the sidebar to add your first item!")
+        st.info("No items found in your database table.")
     else:
-        for clean_item in items_list:
-            col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
-            
-            # Safe Fallback Strategy: Grabs lower or uppercase configurations
-            db_price = clean_item.get('price', clean_item.get('Price', 0.0))
-            db_stock = clean_item.get('stock', clean_item.get('Stock', None))
-            
-            # CRITICAL FALLBACK: If 'stock' column returned entirely missing/null because of a stuck schema cache
-            if db_stock is None:
-                # Check for alternative naming permutations or display default zero
-                db_stock = clean_item.get('starting_stock', 0)
-            
-            with col_id:
-                st.markdown(f"**ID:** {clean_item['id']}")
-                
-            with col_name:
-                st.markdown(f"**Product:** {clean_item['name']}")
-                
-            with col_price:
-                st.markdown(f"**Price:** ${float(db_price):.2f}")
-                
-            with col_counter:
-                new_stock = st.number_input(
-                    label=f"Stock counter for {clean_item['id']}",
-                    min_value=0,
-                    value=int(db_stock),
-                    step=1,
-                    key=f"stock_{clean_item['id']}",
-                    label_visibility="collapsed"
-                )
-                
-                if new_stock != db_stock:
-                    # Target whatever column tracking layout is active
-                    target_key = 'stock' if 'stock' in clean_item else ('Stock' if 'Stock' in clean_item else 'stock')
-                    try:
-                        supabase.table("Items").update({target_key: new_stock}).eq("id", clean_item['id']).execute()
-                        st.rerun()
-                    except Exception as update_err:
-                        st.error(f"Sync Issue: Missing Column. Please verify your exact Supabase column name. Details: {update_err}")
-                    
-            st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
+        # Display the raw database dictionary entries safely to inspect the exact column names
+        for item in items_list:
+            st.json(item)
 
 except Exception as e:
-    st.error(f"Database Interface Error: {e}")
+    st.error(f"Database Fetch Error: {e}")
