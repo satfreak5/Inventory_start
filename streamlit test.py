@@ -5,7 +5,7 @@ from supabase import create_client, Client
 SUPABASE_URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
 SUPABASE_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
 
-# Initialize the cloud database client smoothly
+# Initialize the cloud database client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -46,7 +46,7 @@ with st.sidebar:
             st.error("Please enter a valid item name.")
         else:
             try:
-                # Try inserting standard lowercase, fallback to uppercase if DB demands it
+                # Direct match to your database's lowercase schema requirements
                 new_item = {
                     "name": item_name,
                     "stock": starting_stock,
@@ -55,61 +55,54 @@ with st.sidebar:
                 supabase.table("Items").insert(new_item).execute()
                 st.success(f"Successfully added '{item_name}'!")
                 st.rerun()
-            except Exception:
-                # If your database scheme explicitly demands capitalized columns:
-                try:
-                    alt_item = {
-                        "name": item_name,
-                        "Stock": starting_stock,
-                        "Price": price
-                    }
-                    supabase.table("Items").insert(alt_item).execute()
-                    st.success(f"Successfully added '{item_name}'!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to add item: {e}")
+            except Exception as e:
+                st.error(f"Failed to add item: {e}")
 
 
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-# Fetch fresh data from server
-response = supabase.table("Items").select("*").order("id", desc=False).execute()
-items_list = response.data
+try:
+    # Fetch data from data server
+    response = supabase.table("Items").select("*").order("id", desc=False).execute()
+    items_list = response.data
 
-if not items_list:
-    st.info("No items in inventory yet. Use the sidebar to add your first item!")
-else:
-    for clean_item in items_list:
-        col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
-        
-        # Smart dynamic checking for case safety
-        db_price = clean_item.get('price', clean_item.get('Price', 0.0))
-        db_stock = clean_item.get('stock', clean_item.get('Stock', 0))
-        
-        with col_id:
-            st.markdown(f"**ID:** {clean_item['id']}")
+    if not items_list:
+        st.info("No items in inventory yet. Use the sidebar to add your first item!")
+    else:
+        for clean_item in items_list:
+            col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
             
-        with col_name:
-            st.markdown(f"**Product:** {clean_item['name']}")
+            # Safe Fallback Strategy: Looks for lowercase first, capitalizes if needed
+            db_price = clean_item.get('price', clean_item.get('Price', 0.0))
+            db_stock = clean_item.get('stock', clean_item.get('Stock', 0))
             
-        with col_price:
-            st.markdown(f"**Price:** ${float(db_price):.2f}")
-            
-        with col_counter:
-            new_stock = st.number_input(
-                label=f"Stock counter for {clean_item['id']}",
-                min_value=0,
-                value=int(db_stock),
-                step=1,
-                key=f"stock_{clean_item['id']}",
-                label_visibility="collapsed"
-            )
-            
-            if new_stock != db_stock:
-                # Determine dynamically whether database tracks column using 'stock' or 'Stock'
-                target_stock_key = 'stock' if 'stock' in clean_item else 'Stock'
-                supabase.table("Items").update({target_stock_key: new_stock}).eq("id", clean_item['id']).execute()
-                st.rerun()
+            with col_id:
+                st.markdown(f"**ID:** {clean_item['id']}")
                 
-        st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
+            with col_name:
+                st.markdown(f"**Product:** {clean_item['name']}")
+                
+            with col_price:
+                st.markdown(f"**Price:** ${float(db_price):.2f}")
+                
+            with col_counter:
+                new_stock = st.number_input(
+                    label=f"Stock counter for {clean_item['id']}",
+                    min_value=0,
+                    value=int(db_stock),
+                    step=1,
+                    key=f"stock_{clean_item['id']}",
+                    label_visibility="collapsed"
+                )
+                
+                if new_stock != db_stock:
+                    # Automatically target whichever casing key is actually alive in the dataset
+                    target_key = 'stock' if 'stock' in clean_item else 'Stock'
+                    supabase.table("Items").update({target_key: new_stock}).eq("id", clean_item['id']).execute()
+                    st.rerun()
+                    
+            st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
+
+except Exception as e:
+    st.error(f"Database Sheet Error: {e}")
