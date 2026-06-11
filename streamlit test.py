@@ -2,11 +2,14 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- 1. DATABASE CONNECTION SETUP ---
-# Your direct keys are plugged straight in here to bypass the secrets manager
-URL = "https://uyrfrgdjwfthmw..."  # <-- Finish pasting your full URL string here
-KEY = "sb_publishable_1EmUVN4..."  # <-- Finish pasting your full long Key string here
+# Cleaned up formatting strings to prevent encoding errors
+URL = "PASTE_YOUR_FULL_SUPABASE_URL_HERE".strip()
+KEY = "PASTE_YOUR_FULL_SUPABASE_ANON_KEY_HERE".strip()
 
-supabase: Client = create_client(URL, KEY)
+try:
+    supabase: Client = create_client(URL, KEY)
+except Exception as e:
+    st.error(f"Database connection initialization failed: {e}")
 
 
 # --- 2. PREMIUM PROINV+ HEADER SECTION ---
@@ -45,49 +48,56 @@ with st.sidebar:
         if item_name.strip() == "":
             st.error("Please enter a valid item name.")
         else:
-            new_item = {
-                "name": item_name,
-                "stock": starting_stock,
-                "price": price
-            }
-            supabase.table("Items").insert(new_item).execute()
-            st.success(f"Successfully added '{item_name}'!")
-            st.rerun()
+            try:
+                new_item = {
+                    "name": item_name,
+                    "stock": starting_stock,
+                    "price": price
+                }
+                supabase.table("Items").insert(new_item).execute()
+                st.success(f"Successfully added '{item_name}'!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Failed to add item: {e}")
 
 
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-response = supabase.table("Items").select("*").order("id", desc=False).execute()
-items = response.data
+try:
+    response = supabase.table("Items").select("*").order("id", desc=False).execute()
+    items = response.data
 
-if not items:
-    st.info("No items in inventory yet. Use the sidebar to add your first item!")
-else:
-    for item in items:
-        col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
-        
-        with col_id:
-            st.markdown(f"**ID:** {item['id']}")
+    if not items:
+        st.info("No items in inventory yet. Use the sidebar to add your first item!")
+    else:
+        for item in items:
+            col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
             
-        with col_name:
-            st.markdown(f"**Product:** {item['name']}")
-            
-        with col_price:
-            st.markdown(f"**Price:** ${item['price']:.2f}")
-            
-        with col_counter:
-            new_stock = st.number_input(
-                label=f"Stock counter for {item['id']}",
-                min_value=0,
-                value=int(item['stock']),
-                step=1,
-                key=f"stock_{item['id']}",
-                label_visibility="collapsed"
-            )
-            
-            if new_stock != item['stock']:
-                supabase.table("Items").update({"stock": new_stock}).eq("id", item['id']).execute()
-                st.rerun()
+            with col_id:
+                st.markdown(f"**ID:** {item['id']}")
                 
-        st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
+            with col_name:
+                st.markdown(f"**Product:** {item['name']}")
+                
+            with col_price:
+                st.markdown(f"**Price:** ${item['price']:.2f}")
+                
+            with col_counter:
+                new_stock = st.number_input(
+                    label=f"Stock counter for {item['id']}",
+                    min_value=0,
+                    value=int(item['stock']),
+                    step=1,
+                    key=f"stock_{item['id']}",
+                    label_visibility="collapsed"
+                )
+                
+                if new_stock != item['stock']:
+                    supabase.table("Items").update({"stock": new_stock}).eq("id", item['id']).execute()
+                    st.rerun()
+                    
+            st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
+
+except Exception as e:
+    st.error("Could not load inventory sheets. Please double check that your URL and Key strings are completely correct and don't contain extra hidden spaces.")
