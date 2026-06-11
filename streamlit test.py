@@ -5,7 +5,7 @@ from supabase import create_client, Client
 SUPABASE_URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
 SUPABASE_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
 
-# Initialize the cloud database client
+# Initialize the cloud database client smoothly
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -45,20 +45,35 @@ with st.sidebar:
         if item_name.strip() == "":
             st.error("Please enter a valid item name.")
         else:
-            new_item = {
-                "name": item_name,
-                "stock": starting_stock,   # Forcing clean lowercase
-                "price": price             # Forcing clean lowercase
-            }
-            supabase.table("Items").insert(new_item).execute()
-            st.success(f"Successfully added '{item_name}'!")
-            st.rerun()
+            try:
+                # Try inserting standard lowercase, fallback to uppercase if DB demands it
+                new_item = {
+                    "name": item_name,
+                    "stock": starting_stock,
+                    "price": price
+                }
+                supabase.table("Items").insert(new_item).execute()
+                st.success(f"Successfully added '{item_name}'!")
+                st.rerun()
+            except Exception:
+                # If your database scheme explicitly demands capitalized columns:
+                try:
+                    alt_item = {
+                        "name": item_name,
+                        "Stock": starting_stock,
+                        "Price": price
+                    }
+                    supabase.table("Items").insert(alt_item).execute()
+                    st.success(f"Successfully added '{item_name}'!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to add item: {e}")
 
 
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-# Fetch current list from the cloud
+# Fetch fresh data from server
 response = supabase.table("Items").select("*").order("id", desc=False).execute()
 items_list = response.data
 
@@ -68,6 +83,10 @@ else:
     for clean_item in items_list:
         col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
         
+        # Smart dynamic checking for case safety
+        db_price = clean_item.get('price', clean_item.get('Price', 0.0))
+        db_stock = clean_item.get('stock', clean_item.get('Stock', 0))
+        
         with col_id:
             st.markdown(f"**ID:** {clean_item['id']}")
             
@@ -75,22 +94,22 @@ else:
             st.markdown(f"**Product:** {clean_item['name']}")
             
         with col_price:
-            st.markdown(f"**Price:** ${float(clean_item['price']):.2f}")
+            st.markdown(f"**Price:** ${float(db_price):.2f}")
             
         with col_counter:
-            # Standardizing interactive step counters to lowercase keys
             new_stock = st.number_input(
                 label=f"Stock counter for {clean_item['id']}",
                 min_value=0,
-                value=int(clean_item['stock']),
+                value=int(db_stock),
                 step=1,
                 key=f"stock_{clean_item['id']}",
                 label_visibility="collapsed"
             )
             
-            # Instantly update cloud if a user changes values
-            if new_stock != clean_item['stock']:
-                supabase.table("Items").update({"stock": new_stock}).eq("id", clean_item['id']).execute()
+            if new_stock != db_stock:
+                # Determine dynamically whether database tracks column using 'stock' or 'Stock'
+                target_stock_key = 'stock' if 'stock' in clean_item else 'Stock'
+                supabase.table("Items").update({target_stock_key: new_stock}).eq("id", clean_item['id']).execute()
                 st.rerun()
                 
         st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
