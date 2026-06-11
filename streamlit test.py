@@ -2,11 +2,9 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- 1. DATABASE CONNECTION SETUP ---
-# Kept completely raw and basic to match your original working setup
 URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
-KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw" # <-- Ensure your exact working key is here
+KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
 
-# Initialize the cloud database client
 try:
     supabase: Client = create_client(URL, KEY)
 except Exception as e:
@@ -52,8 +50,8 @@ with st.sidebar:
             try:
                 new_item = {
                     "name": item_name,
-                    "stock": starting_stock,
-                    "price": price
+                    "Stock": starting_stock,  # Capitalized to match Supabase
+                    "Price": price            # Capitalized to match Supabase
                 }
                 supabase.table("Items").insert(new_item).execute()
                 st.success(f"Successfully added '{item_name}'!")
@@ -82,20 +80,27 @@ try:
                 st.markdown(f"**Product:** {item['name']}")
                 
             with col_price:
-                st.markdown(f"**Price:** ${item['price']:.2f}")
+                # Fallback check for capital/lowercase price columns
+                item_price = item.get('Price', item.get('price', 0.0))
+                st.markdown(f"**Price:** ${float(item_price):.2f}")
                 
             with col_counter:
+                # Fallback check for capital/lowercase stock columns
+                current_stock = int(item.get('Stock', item.get('stock', 0)))
+                
                 new_stock = st.number_input(
                     label=f"Stock counter for {item['id']}",
                     min_value=0,
-                    value=int(item['stock']),
+                    value=current_stock,
                     step=1,
                     key=f"stock_{item['id']}",
                     label_visibility="collapsed"
                 )
                 
-                if new_stock != item['stock']:
-                    supabase.table("Items").update({"stock": new_stock}).eq("id", item['id']).execute()
+                if new_stock != current_stock:
+                    # Determine which key to update based on what exists in the row
+                    stock_key = 'Stock' if 'Stock' in item else 'stock'
+                    supabase.table("Items").update({stock_key: new_stock}).eq("id", item['id']).execute()
                     st.rerun()
                     
             st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
