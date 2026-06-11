@@ -103,8 +103,8 @@
     <script type="module">
         import Chatbox from 'https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js'
         Chatbox.initFull({
-            chatflowid: "YOUR_FLOWISE_CHATFLOW_ID", 
-            apiHost: "YOUR_FLOWISE_API_HOST_URL",  
+            chatflowid: "799da5c9-7df4-4bff-bce9-5cb6915e47e5", 
+            apiHost: "https://cloud.flowiseai.com",  
             theme: {
                 chatWindow: {
                     welcomeMessage: "Hello! I am your AI Inventory Manager. Tell me to add items or query our active Supabase tables.",
