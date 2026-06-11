@@ -45,8 +45,8 @@ with st.sidebar:
         else:
             new_item = {
                 "name": item_name,
-                "Stock": starting_stock,
-                "Price": price
+                "Stock": starting_stock,   # Capitalized to match your DB
+                "price": price             # Lowercase to match your DB
             }
             supabase.table("Items").insert(new_item).execute()
             st.success(f"Successfully added '{item_name}'!")
@@ -73,7 +73,8 @@ else:
             st.markdown(f"**Product:** {item['name']}")
             
         with col_price:
-            st.markdown(f"**Price:** ${float(item['Price']):.2f}")
+            # FIXED: Changed from 'Price' to lowercase 'price'
+            st.markdown(f"**Price:** ${float(item['price']):.2f}")
             
         with col_counter:
             # Interactive step counter mapping directly to database column
