@@ -5,7 +5,7 @@ from supabase import create_client, Client
 SUPABASE_URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
 SUPABASE_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
 
-# Initialize the cloud database client smoothly
+# Initialize the cloud database client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
@@ -47,8 +47,8 @@ with st.sidebar:
         else:
             new_item = {
                 "name": item_name,
-                "Stock": starting_stock,   # Capitalized to match your exact DB schema
-                "price": price             # Lowercase to match your exact DB schema
+                "stock": starting_stock,   # Forcing clean lowercase
+                "price": price             # Forcing clean lowercase
             }
             supabase.table("Items").insert(new_item).execute()
             st.success(f"Successfully added '{item_name}'!")
@@ -58,7 +58,7 @@ with st.sidebar:
 # --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-# Fetch fresh array list from data server
+# Fetch current list from the cloud
 response = supabase.table("Items").select("*").order("id", desc=False).execute()
 items_list = response.data
 
@@ -78,17 +78,19 @@ else:
             st.markdown(f"**Price:** ${float(clean_item['price']):.2f}")
             
         with col_counter:
+            # Standardizing interactive step counters to lowercase keys
             new_stock = st.number_input(
                 label=f"Stock counter for {clean_item['id']}",
                 min_value=0,
-                value=int(clean_item['Stock']),
+                value=int(clean_item['stock']),
                 step=1,
                 key=f"stock_{clean_item['id']}",
                 label_visibility="collapsed"
             )
             
-            if new_stock != clean_item['Stock']:
-                supabase.table("Items").update({"Stock": new_stock}).eq("id", clean_item['id']).execute()
+            # Instantly update cloud if a user changes values
+            if new_stock != clean_item['stock']:
+                supabase.table("Items").update({"stock": new_stock}).eq("id", clean_item['id']).execute()
                 st.rerun()
                 
         st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
