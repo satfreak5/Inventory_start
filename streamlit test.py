@@ -1,82 +1,101 @@
 import streamlit as st
 from supabase import create_client, Client
 
-# 🔑 YOUR ACTUAL SUPABASE KEYS
-SUPABASE_URL = "https://uyrfrgdjwfthmwyhvdrj.supabase.co"
-SUPABASE_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw"
+# --- 1. DATABASE CONNECTION SETUP ---
+# (Your secure credentials linking your website to Supabase cloud memory)
+URL = st.secrets["SUPABASE_URL"]
+KEY = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(URL, KEY)
 
-# Connect the Python brain to the cloud database memory
-@st.cache_resource
-def init_connection():
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-supabase = init_connection()
+# --- 2. PREMIUM PROINV+ HEADER SECTION ---
+# Centers the modern icon and applies custom fonts/colors for a premium look
+st.markdown(
+    """
+    <div style="text-align: center;">
+        <img src="https://img.icons8.com/fluent/120/000000/layers.png" width="100" style="margin-bottom: 10px;">
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
-# --- WEBSITE HEADER ---
-st.set_page_config(page_title="Cloud Inventory", page_icon="📦", layout="centered")
-st.title("📦 Professional Cloud Inventory System")
-st.write("Welcome to your live, cloud-connected inventory dashboard management console.")
+st.markdown(
+    """
+    <h1 style="text-align: center; font-family: 'Inter', sans-serif; font-weight: 800; color: #1E3A8A; letter-spacing: -1px; margin-top: 0px; margin-bottom: 0px;">
+        ProInv<span style="color: #3B82F6;">+</span>
+    </h1>
+    <p style="text-align: center; color: #6B7280; font-size: 14px; margin-top: 5px;">
+        Welcome to your live, cloud-connected inventory dashboard management console.
+    </p>
+    <hr style="border: 0; height: 1px; background: #E5E7EB; margin-top: 20px; margin-bottom: 30px;">
+    """, 
+    unsafe_allow_html=True
+)
 
-st.divider()
 
-# --- SIDEBAR: ADD NEW ITEM ---
-st.sidebar.header("➕ Add New Inventory")
-with st.sidebar.form("add_form", clear_on_submit=True):
-    new_name = st.text_input("Item Name")
-    new_qty = st.number_input("Starting Stock", min_value=0, step=1)
-    new_price = st.number_input("Price ($)", min_value=0.0, step=0.01)
-    submit_button = st.form_submit_button("Add Item to Cloud")
-
-    if submit_button:
-        if new_name.strip() == "":
-            st.sidebar.error("Item name cannot be blank!")
+# --- 3. SIDEBAR: ADD NEW INVENTORY FORM ---
+with st.sidebar:
+    st.header("➕ Add New Inventory")
+    
+    # Input fields for user data entry
+    item_name = st.text_input("Item Name", placeholder="e.g., Wireless Mouse")
+    starting_stock = st.number_input("Starting Stock", min_value=0, value=0, step=1)
+    price = st.number_input("Price ($)", min_value=0.0, value=0.0, step=0.01)
+    
+    # Submission button logic
+    if st.button("Add Item to Cloud", use_container_width=True):
+        if item_name.strip() == "":
+            st.error("Please enter a valid item name.")
         else:
-            try:
-                supabase.table("Items").insert({
-                    "name": new_name, "quantity": new_qty, "price": new_price
-                }).execute()
-                st.sidebar.success(f"Added {new_name} successfully!")
-                st.rerun()  # Refresh the page to show the new item immediately
-            except Exception as e:
-                st.sidebar.error(f"Error: {e}")
+            # Insert data row into the Supabase table
+            new_item = {
+                "name": item_name,
+                "stock": starting_stock,
+                "price": price
+            }
+            supabase.table("Items").insert(new_item).execute()
+            st.success(f"Successfully added '{item_name}'!")
+            st.rerun()  # Refresh the page instantly to show the new item
 
-# --- MAIN PAGE: VIEW & MANAGE INVENTORY ---
+
+# --- 4. MAIN INTERFACE: LIVE STOCK SHEETS ---
 st.subheader("📊 Live Stock Sheets")
 
-try:
-    # Pull data from cloud
-    response = supabase.table("Items").select("*").order("id").execute()
-    items = response.data
+# Pull live table rows directly from the cloud database
+response = supabase.table("Items").select("*").order("id", desc=False).execute()
+items = response.data
 
-    if not items:
-        st.info("The inventory is currently empty.")
-    else:
-        # Loop through data and display beautiful individual interactive rows
-        for item in items:
-            with st.container():
-                col1, col2, col3, col4 = st.columns([1, 2, 2, 2])
+# Loop through every item fetched and draw it on the screen
+if not items:
+    st.info("No items in inventory yet. Use the sidebar to add your first item!")
+else:
+    for item in items:
+        # Create a horizontal row split into clean columns
+        col_id, col_name, col_price, col_counter = st.columns([1, 3, 2, 3])
+        
+        with col_id:
+            st.markdown(f"**ID:** {item['id']}")
+            
+        with col_name:
+            st.markdown(f"**Product:** {item['name']}")
+            
+        with col_price:
+            st.markdown(f"**Price:** ${item['price']:.2f}")
+            
+        with col_counter:
+            # Display a mini interactive adjustment widget for stock quantity
+            new_stock = st.number_input(
+                label=f"Stock counter for {item['id']}",
+                min_value=0,
+                value=int(item['stock']),
+                step=1,
+                key=f"stock_{item['id']}",
+                label_visibility="collapsed"  # Hides clutter text to keep look clean
+            )
+            
+            # If the user clicks a number change, update the cloud instantly
+            if new_stock != item['stock']:
+                supabase.table("Items").update({"stock": new_stock}).eq("id", item['id']).execute()
+                st.rerun()
                 
-                with col1:
-                    st.write(f"**ID:** {item['id']}")
-                with col2:
-                    st.write(f"**Product:** {item['name']}")
-                with col3:
-                    st.write(f"**Price:** ${item['price']:.2f}")
-                with col4:
-                    current_stock = item['quantity']
-                    new_stock = st.number_input(
-                        f"Stock for ID {item['id']}", 
-                        min_value=0, 
-                        value=int(current_stock), 
-                        key=f"stock_{item['id']}", 
-                        label_visibility="collapsed"
-                    )
-                    
-                    # If they change the number, update the cloud instantly
-                    if new_stock != current_stock:
-                        supabase.table("Items").update({"quantity": new_stock}).eq("id", item['id']).execute()
-                        st.rerun()
-                st.divider()
-
-except Exception as e:
-    st.error(f"Could not load cloud data: {e}")
+        st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
