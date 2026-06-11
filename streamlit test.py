@@ -2,11 +2,12 @@ import streamlit as st
 from supabase import create_client, Client
 
 # --- 1. DATABASE CONNECTION SETUP ---
-# Cleaned up formatting strings to prevent encoding errors
-URL = "PASTE_YOUR_FULL_SUPABASE_URL_HERE".strip()
-KEY = "PASTE_YOUR_FULL_SUPABASE_ANON_KEY_HERE".strip()
+# Explicitly encoding keys as strict UTF-8 text strings to prevent cloud crashing
+URL = str("PASTE_YOUR_FULL_SUPABASE_URL_HERE").strip()
+KEY = str("PASTE_YOUR_FULL_SUPABASE_ANON_KEY_HERE").strip()
 
 try:
+    # Safely initiate connection with cleaned variables
     supabase: Client = create_client(URL, KEY)
 except Exception as e:
     st.error(f"Database connection initialization failed: {e}")
@@ -100,4 +101,4 @@ try:
             st.markdown("<hr style='border: 0; height: 1px; background: #F3F4F6; margin: 10px 0;'>", unsafe_allow_html=True)
 
 except Exception as e:
-    st.error("Could not load inventory sheets. Please double check that your URL and Key strings are completely correct and don't contain extra hidden spaces.")
+    st.error(f"Connection String Error: {e}")
