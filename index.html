@@ -7,25 +7,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
-        
-        /* Forces the screen to split perfectly horizontally with zero overlap */
         body { display: flex; width: 100vw; height: 100vh; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; overflow: hidden; }
-        
-        /* Left Panel: Occupies 55% of your screen width */
         #dashboard { width: 55vw; height: 100vh; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
         h1 { color: #1e293b; font-size: 24px; }
         .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         .refresh-btn:hover { background-color: #4338ca; }
-        
-        /* Table Layout Configuration */
         .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; width: 100%; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; font-weight: 600; color: #64748b; }
         tr:hover { background-color: #f1f5f9; }
-        
-        /* Right Panel: Occupies remaining 45% of screen width cleanly */
         #chat-section { width: 45vw; height: 100vh; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
     </style>
 </head>
@@ -42,13 +34,15 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Item Description / Input</th>
+                        <th>Item Name</th>
+                        <th>Qty</th>
+                        <th>Price</th>
                         <th>Timestamp Created</th>
                     </tr>
                 </thead>
                 <tbody id="inventory-data">
                     <tr>
-                        <td colspan="3" style="text-align: center; color: #64748b;">Connecting directly to Supabase storage cloud...</td>
+                        <td colspan="5" style="text-align: center; color: #64748b;">Connecting directly to Supabase storage cloud...</td>
                     </tr>
                 </tbody>
             </table>
@@ -61,14 +55,12 @@
         const SUPABASE_URL = "https://uyrfgdjwsthmwyhvdrj.supabase.co"; 
         const SUPABASE_ANON_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw";
 
-        // FIX: Changed client name variable to prevent initialization crash
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         async function fetchInventory() {
             const tbody = document.getElementById('inventory-data');
             
             try {
-                // Queries your live 'Items' table via the corrected client connection
                 let { data: Items, error } = await supabaseClient.from('Items').select('*');
                 
                 if (error) throw error;
@@ -76,22 +68,25 @@
                 tbody.innerHTML = ''; 
                 
                 if (!Items || Items.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 30px; color: #64748b;">Your inventory table is currently empty! Ask your AI assistant on the right to log an item.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color: #64748b;">Your inventory table is currently empty! Ask your AI assistant on the right to log an item.</td></tr>`;
                     return;
                 }
 
+                // FIX: Maps directly to your real columns (name, quantity, price)
                 Items.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td><strong>#${item.id}</strong></td>
-                        <td>${item.input || item.name || 'No text content'}</td>
+                        <td>${item.name || 'No text content'}</td>
+                        <td>${item.quantity !== null && item.quantity !== undefined ? item.quantity : '-'}</td>
+                        <td>${item.price ? '$' + item.price : '-'}</td>
                         <td>${new Date(item.created_at).toLocaleString()}</td>
                     `;
                     tbody.appendChild(row);
                 });
             } catch (err) {
                 console.error("Supabase communication failure:", err);
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 30px; color: #ef4444;">Database query failed. Double check your RLS policies or API keys.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color: #ef4444;">Database query failed. Column mismatch or connection error.</td></tr>`;
             }
         }
 
