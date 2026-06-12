@@ -8,25 +8,25 @@
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
         
-        /* Fixed layout: Prevent elements from collapsing on top of each other */
-        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; overflow: hidden; }
+        /* Forces the screen to split perfectly horizontally with zero overlap */
+        body { display: flex; width: 100vw; height: 100vh; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; overflow: hidden; }
         
-        /* Dashboard Container Styling - Takes up 60% of horizontal space */
-        #dashboard { flex: 6; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        /* Left Panel: Occupies 55% of your screen width */
+        #dashboard { width: 55vw; height: 100vh; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
         h1 { color: #1e293b; font-size: 24px; }
         .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         .refresh-btn:hover { background-color: #4338ca; }
         
-        /* Table Layout Styling */
+        /* Table Layout Configuration */
         .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; width: 100%; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; font-weight: 600; color: #64748b; }
         tr:hover { background-color: #f1f5f9; }
         
-        /* Flowise Agent Full-Page Panel Layout - Dedicated 40% of horizontal space */
-        #chat-section { flex: 4; height: 100vh; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
+        /* Right Panel: Occupies remaining 45% of screen width cleanly */
+        #chat-section { width: 45vw; height: 100vh; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
     </style>
 </head>
 <body>
@@ -48,7 +48,7 @@
                 </thead>
                 <tbody id="inventory-data">
                     <tr>
-                        <td colspan="3" style="text-align: center; color: #64748b;">Loading live Supabase credentials...</td>
+                        <td colspan="3" style="text-align: center; color: #64748b;">Connecting directly to Supabase storage cloud...</td>
                     </tr>
                 </tbody>
             </table>
@@ -58,31 +58,28 @@
     <div id="chat-section"></div>
 
     <script>
-        // Pre-configured live project connections
         const SUPABASE_URL = "https://uyrfgdjwsthmwyhvdrj.supabase.co"; 
         const SUPABASE_ANON_KEY = "sb_publishable_1EmUVN4ONUX-2dnEY-eFZg_GzYA06mw";
 
-        // Instantiating the global Supabase library context
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // FIX: Changed client name variable to prevent initialization crash
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // API interaction loop to fetch rows
         async function fetchInventory() {
             const tbody = document.getElementById('inventory-data');
             
             try {
-                // Queries your active 'Items' table directly over TLS
-                let { data: Items, error } = await supabase.from('Items').select('*');
+                // Queries your live 'Items' table via the corrected client connection
+                let { data: Items, error } = await supabaseClient.from('Items').select('*');
                 
                 if (error) throw error;
                 
-                tbody.innerHTML = ''; // Wipe out existing placeholder elements
+                tbody.innerHTML = ''; 
                 
                 if (!Items || Items.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Your inventory table is currently empty! Ask the AI assistant to add something.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 30px; color: #64748b;">Your inventory table is currently empty! Ask your AI assistant on the right to log an item.</td></tr>`;
                     return;
                 }
 
-                // Render out rows sequentially
                 Items.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -94,11 +91,10 @@
                 });
             } catch (err) {
                 console.error("Supabase communication failure:", err);
-                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color: #ef4444;">Database query failed. Double check table permissions.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 30px; color: #ef4444;">Database query failed. Double check your RLS policies or API keys.</td></tr>`;
             }
         }
 
-        // Auto-run verification script the moment layout loads
         window.onload = fetchInventory;
     </script>
 
@@ -117,6 +113,5 @@
         })
     </script>
 
-    
 </body>
 </html>
