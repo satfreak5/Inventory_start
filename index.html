@@ -3,46 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Inventory Manager</title>
+    <title>Enterprise AI Inventory System</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
-        body { display: flex; width: 100vw; height: 100vh; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; overflow: hidden; }
-        #dashboard { width: 55vw; height: 100vh; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
-        h1 { color: #1e293b; font-size: 24px; }
-        .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        .refresh-btn:hover { background-color: #4338ca; }
-        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; width: 100%; }
+        /* Modern Design Framework */
+        * { 
+            box-sizing: border-box; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+        }
+        
+        body { 
+            display: flex; 
+            width: 100vw; 
+            height: 100vh; 
+            background-color: #f8fafc; 
+            color: #0f172a; 
+            overflow: hidden; 
+        }
+        
+        /* Left Panel Workspace */
+        #dashboard { 
+            width: 55vw; 
+            height: 100vh; 
+            padding: 40px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 24px; 
+        }
+        
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding-bottom: 20px; 
+        }
+        
+        h1 { 
+            font-size: 26px; 
+            font-weight: 700; 
+            color: #1e293b;
+            letter-spacing: -0.02em;
+        }
+        
+        /* Polished UI Button */
+        .refresh-btn { 
+            background: linear-gradient(135deg, #4f46e5, #4338ca); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+            transition: all 0.2s ease; 
+        }
+        
+        .refresh-btn:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+        }
+        
+        /* Premium Floating Card Container */
+        .table-container { 
+            background: white; 
+            border: 1px solid #e2e8f0;
+            border-radius: 12px; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); 
+            overflow: hidden; 
+            width: 100%; 
+        }
+        
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
-        th { background-color: #f8fafc; font-weight: 600; color: #64748b; }
-        tr:hover { background-color: #f1f5f9; }
-        #chat-section { width: 45vw; height: 100vh; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
+        th, td { padding: 18px 24px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        
+        th { 
+            background-color: #f1f5f9; 
+            font-weight: 600; 
+            color: #64748b; 
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+        
+        tr { transition: background-color 0.15s ease; }
+        tr:hover { background-color: #f8fafc; }
+        
+        /* Modern Micro-Styling Badge Elements */
+        .id-badge {
+            background-color: rgba(79, 70, 229, 0.08);
+            color: #4f46e5;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+        
+        .qty-text { color: #10b981; font-weight: 600; }
+        .price-text { color: #d97706; font-weight: 600; }
+        .timestamp-text { color: #64748b; font-size: 13px; }
+
+        /* Right Panel Chat Workspace */
+        #chat-section { 
+            width: 45vw; 
+            height: 100vh; 
+            background: #ffffff; 
+            border-left: 1px solid #e2e8f0; 
+            position: relative; 
+            box-shadow: -4px 0 20px rgba(0,0,0,0.02);
+        }
     </style>
 </head>
 <body>
 
     <div id="dashboard">
         <header>
-            <h1>📦 Live Inventory Dashboard</h1>
-            <button class="refresh-btn" onclick="fetchInventory()">🔄 Refresh Table</button>
+            <h1>📊 Cloud Asset Hub</h1>
+            <button class="refresh-btn" onclick="fetchInventory()">🔄 Sync Data Stream</button>
         </header>
 
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Item Name</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Timestamp Created</th>
+                        <th>Asset Index</th>
+                        <th>Item Label</th>
+                        <th>Quantity Allocation</th>
+                        <th>Unit Value</th>
+                        <th>System Updated</th>
                     </tr>
                 </thead>
                 <tbody id="inventory-data">
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #64748b;">Connecting directly to Supabase storage cloud...</td>
+                        <td colspan="5" style="text-align: center; color: #64748b; padding: 40px;">
+                            Initializing network storage arrays...
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -68,24 +167,24 @@
                 tbody.innerHTML = ''; 
                 
                 if (!Items || Items.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color: #64748b;">Your inventory table is currently empty! Ask your AI assistant on the right to log an item.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color: #64748b;">No active records found. Ask the core assistant on the right to append an item.</td></tr>`;
                     return;
                 }
 
                 Items.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td><strong>#${item.id}</strong></td>
-                        <td>${item.name || 'No text content'}</td>
-                        <td>${item.quantity !== null && item.quantity !== undefined ? item.quantity : '-'}</td>
-                        <td>${item.price ? '$' + item.price : '-'}</td>
-                        <td>${new Date(item.created_at).toLocaleString()}</td>
+                        <td><span class="id-badge">ID-${item.id}</span></td>
+                        <td style="font-weight: 500; color: #1e293b;">${item.name || 'Null Value'}</td>
+                        <td><span class="qty-text">${item.quantity !== null && item.quantity !== undefined ? item.quantity : '-'}</span></td>
+                        <td><span class="price-text">${item.price ? '$' + parseFloat(item.price).toFixed(2) : '-'}</span></td>
+                        <td><span class="timestamp-text">${new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} | ${new Date(item.created_at).toLocaleDateString()}</span></td>
                     `;
                     tbody.appendChild(row);
                 });
             } catch (err) {
-                console.error("Supabase communication failure:", err);
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color: #ef4444;">Database query failed. Column mismatch or connection error.</td></tr>`;
+                console.error("Supabase cluster communication failure:", err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ef4444; font-weight: 500;">❌ Database Connection Breached or Columns Unaligned.</td></tr>`;
             }
         }
 
@@ -99,7 +198,7 @@
             apiHost: "https://cloud.flowiseai.com",  
             theme: {
                 chatWindow: {
-                    welcomeMessage: "Hello! I am your AI Inventory Manager. Tell me to add items or query our active Supabase tables.",
+                    welcomeMessage: "Hello! System channels initialized. You can request direct additions or standard queries to your connected database tables.",
                     backgroundColor: "#ffffff",
                     fontSize: 16
                 }
