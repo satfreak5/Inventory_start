@@ -7,24 +7,26 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
-        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; }
         
-        /* Dashboard Container Styling */
-        #dashboard { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        /* Fixed layout: Prevent elements from collapsing on top of each other */
+        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; overflow: hidden; }
+        
+        /* Dashboard Container Styling - Takes up 60% of horizontal space */
+        #dashboard { flex: 6; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e1e4e8; padding-bottom: 15px; }
         h1 { color: #1e293b; font-size: 24px; }
-        .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 6px; transition: background 0.2s; }
+        .refresh-btn { background-color: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         .refresh-btn:hover { background-color: #4338ca; }
         
         /* Table Layout Styling */
-        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; width: 100%; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th, td { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #f8fafc; font-weight: 600; color: #64748b; }
         tr:hover { background-color: #f1f5f9; }
         
-        /* Flowise Agent Full-Page Panel Layout */
-        #chat-section { width: 450px; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
+        /* Flowise Agent Full-Page Panel Layout - Dedicated 40% of horizontal space */
+        #chat-section { flex: 4; height: 100vh; background: #ffffff; border-left: 1px solid #e2e8f0; position: relative; }
     </style>
 </head>
 <body>
@@ -117,5 +119,3 @@
 
 </body>
 </html>
-
-
